@@ -1,0 +1,9 @@
+name: cloud_sync_adapters
+publish_to: none
+environment:
+  sdk: ^3.7.0
+
+workspace:
+  - packages/cloud_sync_google_drive_adapter
+  - packages/cloud_sync_hive_adapter
+  - packages/cloud_sync_shared_preferences_adapter
