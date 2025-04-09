@@ -1,6 +1,5 @@
 import 'package:cloud_sync/cloud_sync.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
-import 'package:http/http.dart';
 
 /// A Google Drive implementation of the [SyncAdapter] interface.
 ///
@@ -8,7 +7,7 @@ import 'package:http/http.dart';
 /// with Google Drive.
 class CloudSyncGoogleDriveAdapter
     implements SyncAdapter<SyncMetadata, List<int>> {
-  final drive.DriveApi _driveApi;
+  final drive.DriveApi driveApi;
   final String spaces;
 
   /// Constructor for [CloudSyncGoogleDriveAdapter].
@@ -16,9 +15,9 @@ class CloudSyncGoogleDriveAdapter
   /// Accepts an HTTP [client] for making requests to Google Drive and
   /// an optional [spaces] parameter, which defaults to 'appDataFolder'.
   CloudSyncGoogleDriveAdapter({
-    required Client client,
+    required this.driveApi,
     this.spaces = 'appDataFolder',
-  }) : _driveApi = drive.DriveApi(client);
+  });
 
   /// Generates a list of unique IDs for files in Google Drive.
   ///
@@ -26,7 +25,7 @@ class CloudSyncGoogleDriveAdapter
   /// The [count] parameter specifies how many IDs to generate, defaulting to 1.
   /// Returns a list of generated IDs.
   Future<List<String>> generateIds([int count = 1]) {
-    return _driveApi.files.generateIds(count: count).then((response) {
+    return driveApi.files.generateIds(count: count).then((response) {
       return response.ids ?? [];
     });
   }
@@ -41,7 +40,7 @@ class CloudSyncGoogleDriveAdapter
     String? nextPageToken;
     final q = "mimeType!='application/vnd.google-apps.folder'";
     do {
-      final fileList = await _driveApi.files.list(
+      final fileList = await driveApi.files.list(
         spaces: spaces,
         pageToken: nextPageToken,
         $fields: 'id, modifiedTime, description',
@@ -53,8 +52,7 @@ class CloudSyncGoogleDriveAdapter
 
     // Map the file descriptions to SyncMetadata objects.
     return results.map((file) {
-      final metadata = SyncMetadata.fromJson(file.description!);
-      return metadata;
+      return SyncMetadataDeserialization.fromJson(file.description!);
     }).toList();
   }
 
@@ -65,7 +63,7 @@ class CloudSyncGoogleDriveAdapter
   @override
   Future<List<int>> fetchDetail(SyncMetadata metadata) async {
     final file =
-        await _driveApi.files.get(
+        await driveApi.files.get(
               metadata.id,
               downloadOptions: drive.DownloadOptions.fullMedia,
             )
@@ -109,7 +107,7 @@ class CloudSyncGoogleDriveAdapter
 
     final media = drive.Media(Stream.fromIterable([detail]), detail.length);
 
-    await _driveApi.files.create(file, uploadMedia: media);
+    await driveApi.files.create(file, uploadMedia: media);
   }
 
   /// Updates an existing file in Google Drive.
@@ -124,6 +122,6 @@ class CloudSyncGoogleDriveAdapter
           ..description = metadata.toJson();
     final media = drive.Media(Stream.fromIterable([detail]), detail.length);
 
-    await _driveApi.files.update(file, metadata.id, uploadMedia: media);
+    await driveApi.files.update(file, metadata.id, uploadMedia: media);
   }
 }

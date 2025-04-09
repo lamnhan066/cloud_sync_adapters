@@ -2,6 +2,7 @@ import 'dart:convert'; // For JSON encoding
 
 import 'package:cloud_sync/cloud_sync.dart';
 import 'package:cloud_sync_google_drive_adapter/cloud_sync_google_drive_adapter.dart';
+import 'package:googleapis/drive/v3.dart';
 import 'package:http/http.dart';
 import 'package:http/testing.dart'; // For mocking HTTP client
 
@@ -78,7 +79,7 @@ void main() async {
     return Response('Not Found', 404);
   });
 
-  final adapter = CloudSyncGoogleDriveAdapter(client: mockClient);
+  final adapter = CloudSyncGoogleDriveAdapter(driveApi: DriveApi(mockClient));
 
   // Example usage:
   try {
