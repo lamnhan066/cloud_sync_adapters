@@ -21,7 +21,9 @@ class CloudSyncSharedPreferencesAdapter
   Future<List<SyncMetadata>> fetchMetadataList() async {
     final listString = preferences.getStringList('$prefix.metadataList');
     final list =
-        listString?.map((element) => SyncMetadata.fromJson(element)).toList();
+        listString
+            ?.map((element) => SyncMetadataDeserialization.fromJson(element))
+            .toList();
 
     return list ?? [];
   }
@@ -46,9 +48,7 @@ class CloudSyncSharedPreferencesAdapter
   Future<void> save(SyncMetadata metadata, String detail) async {
     final metadataList = await fetchMetadataList();
 
-    if (metadataList.any((e) => e.id == metadata.id)) {
-      await preferences.setString('$prefix.${metadata.id}', detail);
-    }
+    await preferences.setString('$prefix.${metadata.id}', detail);
 
     metadataList.removeWhere((e) => e.id == metadata.id);
     metadataList.add(metadata);
