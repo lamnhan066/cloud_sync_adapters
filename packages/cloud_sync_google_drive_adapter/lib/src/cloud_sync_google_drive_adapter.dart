@@ -1,5 +1,6 @@
 import 'package:cloud_sync/cloud_sync.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:http/http.dart' as http;
 
 /// A Google Drive implementation of the [SyncAdapter] interface.
 ///
@@ -12,12 +13,28 @@ class CloudSyncGoogleDriveAdapter
 
   /// Constructor for [CloudSyncGoogleDriveAdapter].
   ///
-  /// Accepts an HTTP [client] for making requests to Google Drive and
-  /// an optional [spaces] parameter, which defaults to 'appDataFolder'.
-  CloudSyncGoogleDriveAdapter({
+  /// Initializes the adapter with the provided [driveApi] instance for interacting
+  /// with the Google Drive API and an optional [spaces] parameter, which specifies
+  /// the storage space to operate in (defaulting to 'appDataFolder').
+  const CloudSyncGoogleDriveAdapter({
     required this.driveApi,
     this.spaces = 'appDataFolder',
   });
+
+  /// Factory constructor to create an instance of [CloudSyncGoogleDriveAdapter].
+  ///
+  /// This factory method accepts an HTTP [client] for making requests to Google Drive
+  /// and an optional [spaces] parameter, which defaults to 'appDataFolder'.
+  /// It initializes the [driveApi] using the provided [client].
+  factory CloudSyncGoogleDriveAdapter.fromClient({
+    required http.Client client,
+    String spaces = 'appDataFolder',
+  }) {
+    return CloudSyncGoogleDriveAdapter(
+      driveApi: drive.DriveApi(client),
+      spaces: spaces,
+    );
+  }
 
   /// Generates a list of unique IDs for files in Google Drive.
   ///
