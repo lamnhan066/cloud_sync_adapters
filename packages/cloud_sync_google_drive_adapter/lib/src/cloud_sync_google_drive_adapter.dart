@@ -7,21 +7,23 @@ import 'package:http/http.dart' as http;
 const String _kDefaultSpaces = 'appDataFolder';
 const String _kDefaultFileName = '\$CloudSyncGoogleDriveAdapter';
 
-/// A Google Drive implementation of the [SyncAdapter] interface.
+/// A [SyncAdapter] implementation that uses Google Drive for synchronization.
 ///
-/// This adapter handles synchronization of metadata and detailed data
-/// with Google Drive.
+/// This adapter handles the storage and retrieval of both metadata and detailed
+/// content using the Google Drive API, specifically within the provided [spaces],
+/// typically the `appDataFolder`.
 class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
     extends SerializableSyncAdapter<M, String> {
   final drive.DriveApi driveApi;
   final String spaces;
   final String fileName;
 
-  /// Constructor for [CloudSyncGoogleDriveAdapter].
+  /// Creates a [CloudSyncGoogleDriveAdapter] instance using an existing [DriveApi] client.
   ///
-  /// Initializes the adapter with the provided [driveApi] instance for interacting
-  /// with the Google Drive API and an optional [spaces] parameter, which specifies
-  /// the storage space to operate in (defaulting to 'appDataFolder').
+  /// - [driveApi]: An authenticated instance of [drive.DriveApi].
+  /// - [spaces]: The Drive space to use (defaults to `'appDataFolder'`).
+  /// - [fileName]: The name of the file used to store data (defaults to `'$CloudSyncGoogleDriveAdapter'`).
+  /// - [metadataToJson] / [metadataFromJson]: Functions for serializing and deserializing metadata.
   const CloudSyncGoogleDriveAdapter({
     required this.driveApi,
     this.spaces = _kDefaultSpaces,
@@ -30,11 +32,13 @@ class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
     required super.metadataFromJson,
   });
 
-  /// Factory constructor to create an instance of [CloudSyncGoogleDriveAdapter].
+  /// Creates a [CloudSyncGoogleDriveAdapter] from an HTTP client.
   ///
-  /// This factory method accepts an HTTP [client] for making requests to Google Drive
-  /// and an optional [spaces] parameter, which defaults to 'appDataFolder'.
-  /// It initializes the [driveApi] using the provided [client].
+  /// This is a convenience constructor that creates the [DriveApi] instance internally.
+  ///
+  /// - [client]: The authenticated HTTP client for Google APIs.
+  /// - [spaces]: The Drive space to use (defaults to `'appDataFolder'`).
+  /// - [fileName]: The name of the file used to store data.
   CloudSyncGoogleDriveAdapter.fromClient({
     required http.Client client,
     this.spaces = _kDefaultSpaces,
@@ -43,49 +47,50 @@ class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
     required super.metadataFromJson,
   }) : driveApi = drive.DriveApi(client);
 
-  /// Generates a list of unique IDs for files in Google Drive.
+  /// Generates one or more unique file IDs from Google Drive.
   ///
-  /// This method uses the Google Drive API to generate a specified number of IDs.
-  /// The [count] parameter specifies how many IDs to generate, defaulting to 1.
-  /// Returns a list of generated IDs.
-  Future<List<String>> generateIds([int count = 1]) {
-    return driveApi.files.generateIds(count: count).then((response) {
-      return response.ids ?? [];
-    });
+  /// - [count]: Number of IDs to generate (defaults to 1).
+  /// Returns a list of newly generated file IDs.
+  Future<List<String>> generateIds([int count = 1]) async {
+    final response = await driveApi.files.generateIds(count: count);
+    return response.ids ?? [];
   }
 
-  /// Fetches a list of metadata from Google Drive.
+  /// Fetches a list of all metadata entries stored in Google Drive.
   ///
-  /// This method retrieves all files in the specified [spaces] that are
-  /// not folders and maps their descriptions to [SyncMetadata] objects.
+  /// Searches for all files (non-folders) within the specified [spaces]
+  /// and returns those whose name matches [fileName].
+  ///
+  /// Returns a list of deserialized metadata objects.
   @override
   Future<List<M>> fetchMetadataList() async {
     final results = <drive.File>[];
     String? nextPageToken;
-    final q = "mimeType!='application/vnd.google-apps.folder'";
+    const query = "mimeType != 'application/vnd.google-apps.folder'";
+
     do {
       final fileList = await driveApi.files.list(
         spaces: spaces,
         pageToken: nextPageToken,
         $fields: '*',
-        q: q,
+        q: query,
       );
 
       for (final file in fileList.files ?? <drive.File>[]) {
-        if (file.name == fileName) results.add(file);
+        if (file.name == fileName) {
+          results.add(file);
+        }
       }
 
       nextPageToken = fileList.nextPageToken;
     } while (nextPageToken != null);
 
-    // Map the file descriptions to SyncMetadata objects.
     return results.map((file) => metadataFromJson(file.description!)).toList();
   }
 
-  /// Fetches the detailed content of a file from Google Drive.
+  /// Downloads the content of a file associated with the given [metadata].
   ///
-  /// Accepts a [SyncMetadata] object and retrieves the file's binary content
-  /// as a list of integers.
+  /// Returns the file content as a UTF-8 decoded [String].
   @override
   Future<String> fetchDetail(SyncMetadata metadata) async {
     final file =
@@ -95,16 +100,14 @@ class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
             )
             as drive.Media;
 
-    // Combine the streamed content into a single list of bytes.
-    final contentMultipleList = await file.stream.toList();
-
-    return utf8.decode(contentMultipleList.expand((e) => e).toList());
+    final byteChunks = await file.stream.toList();
+    return utf8.decode(byteChunks.expand((e) => e).toList());
   }
 
-  /// Saves a file to Google Drive.
+  /// Saves metadata and associated detail to Google Drive.
   ///
-  /// If the file already exists (based on its metadata ID), it updates the file.
-  /// Otherwise, it creates a new file.
+  /// If a file with the same metadata ID already exists, it is updated.
+  /// Otherwise, a new file is created.
   @override
   Future<void> save(M metadata, String detail) async {
     final metadataList = await fetchMetadataList();
@@ -116,9 +119,7 @@ class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
     }
   }
 
-  /// Creates a new file in Google Drive.
-  ///
-  /// Accepts [metadata] for the file's metadata and [detail] for its binary content.
+  /// Creates a new file in Google Drive with the given [metadata] and [detail].
   Future<void> _createFile(M metadata, String detail) async {
     final file =
         drive.File()
@@ -135,9 +136,7 @@ class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
     await driveApi.files.create(file, uploadMedia: media);
   }
 
-  /// Updates an existing file in Google Drive.
-  ///
-  /// Accepts [metadata] for the updated metadata and [detail] for the updated binary content.
+  /// Updates an existing file in Google Drive with new [metadata] and [detail].
   Future<void> _updateFile(M metadata, String detail) async {
     final file =
         drive.File()
