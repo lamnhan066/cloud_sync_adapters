@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cloud_sync/cloud_sync.dart';
@@ -24,9 +25,12 @@ class FakeDriveFile extends Fake implements drive.File {}
 void main() {
   late MockDriveApi mockDriveApi;
   late MockFilesResource mockFiles;
-  late CloudSyncGoogleDriveAdapter adapter;
+  late CloudSyncGoogleDriveAdapter<SerializableSyncMetadata> adapter;
 
-  final testMetadata = SyncMetadata(id: 'test-id', modifiedAt: DateTime.now());
+  final testMetadata = SerializableSyncMetadata(
+    id: 'test-id',
+    modifiedAt: DateTime.now(),
+  );
   final jsonDescription = testMetadata.toJson();
 
   setUpAll(() {
@@ -38,7 +42,11 @@ void main() {
     mockFiles = MockFilesResource();
 
     when(() => mockDriveApi.files).thenReturn(mockFiles);
-    adapter = CloudSyncGoogleDriveAdapter(driveApi: mockDriveApi);
+    adapter = CloudSyncGoogleDriveAdapter<SerializableSyncMetadata>(
+      driveApi: mockDriveApi,
+      metadataToJson: (metadata) => metadata.toJson(),
+      metadataFromJson: (json) => SerializableSyncMetadata.fromJson(json),
+    );
   });
 
   test('generateIds returns list of IDs', () async {
@@ -59,6 +67,7 @@ void main() {
     final file =
         drive.File()
           ..id = testMetadata.id
+          ..name = adapter.fileName
           ..description = jsonDescription
           ..modifiedTime = testMetadata.modifiedAt;
 
@@ -98,7 +107,10 @@ void main() {
 
     final bytes = await adapter.fetchDetail(testMetadata);
 
-    expect(bytes, [1, 2, 3]);
+    final expected = fileBytes.expand((e) => e).toList();
+    final decodedBytes = utf8.decode(expected);
+
+    expect(bytes, decodedBytes);
   });
 
   test('save creates file if metadata not found', () async {
@@ -118,7 +130,7 @@ void main() {
       () => mockFiles.create(any(), uploadMedia: any(named: 'uploadMedia')),
     ).thenAnswer((_) async => drive.File());
 
-    await adapter.save(testMetadata, [1, 2, 3]);
+    await adapter.save(testMetadata, '1 2 3');
 
     verify(
       () => mockFiles.create(any(), uploadMedia: any(named: 'uploadMedia')),
@@ -130,6 +142,7 @@ void main() {
     final driveFile =
         drive.File()
           ..id = testMetadata.id
+          ..name = adapter.fileName
           ..description = jsonDescription;
 
     when(() => mockFileList.files).thenReturn([driveFile]);
@@ -151,7 +164,7 @@ void main() {
       ),
     ).thenAnswer((_) async => drive.File());
 
-    await adapter.save(testMetadata, [4, 5, 6]);
+    await adapter.save(testMetadata, '4 5 6');
 
     verify(
       () => mockFiles.update(
