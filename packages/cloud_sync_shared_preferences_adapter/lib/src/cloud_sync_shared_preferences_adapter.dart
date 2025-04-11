@@ -3,11 +3,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const String _kPrefix = '\$CloudSyncSharedPreferencesAdapter';
 
-/// A local implementation of the [SyncAdapter] interface using SharedPreferences for storage.
-/// This adapter is responsible for syncing metadata and notes.
+/// A [SyncAdapter] implementation that uses [SharedPreferences] for local storage.
+///
+/// This adapter handles the persistence of metadata and associated detail content (e.g., notes)
+/// using simple key-value storage via SharedPreferences.
 class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
     extends SerializableSyncAdapter<M, String> {
-  /// Creates a [CloudSyncSharedPreferencesAdapter] with the given SharedPreferences instance.
+  /// Creates an instance of [CloudSyncSharedPreferencesAdapter].
+  ///
+  /// - [preferences]: The SharedPreferences instance for storing metadata and detail content.
+  /// - [metadataToJson]: Function to serialize metadata to JSON.
+  /// - [metadataFromJson]: Function to deserialize metadata from JSON.
+  /// - [prefix]: (Optional) A prefix used to namespace keys to avoid collisions. Defaults to [_kPrefix].
   const CloudSyncSharedPreferencesAdapter({
     required this.preferences,
     required super.metadataToJson,
@@ -15,15 +22,18 @@ class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
     this.prefix = _kPrefix,
   });
 
-  /// A prefix used to namespace keys in SharedPreferences.
+  /// A string prefix to namespace all stored keys in SharedPreferences.
   final String prefix;
 
-  /// The SharedPreferences instance used to store metadata and notes.
+  /// The [SharedPreferences] instance used for reading and writing data.
   final SharedPreferences preferences;
 
-  /// Fetches the list of metadata from SharedPreferences.
+  /// Retrieves the list of stored metadata from SharedPreferences.
   ///
-  /// Returns a list of `SyncMetadata` objects. If no metadata is found, returns an empty list.
+  /// The metadata is expected to be stored under the key `'<prefix>.metadataList'`
+  /// as a list of JSON strings.
+  ///
+  /// Returns a list of deserialized metadata objects. Returns an empty list if none are found.
   @override
   Future<List<M>> fetchMetadataList() async {
     final listString = preferences.getStringList('$prefix.metadataList');
@@ -32,22 +42,25 @@ class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
     return list ?? [];
   }
 
-  /// Fetches the detail (note content) associated with the given metadata.
+  /// Fetches the detail content associated with the given [metadata] from SharedPreferences.
   ///
-  /// Throws an exception if the note is not found.
+  /// - [metadata]: The metadata object containing the ID used to locate the stored detail.
   ///
-  /// [metadata] - The metadata object containing the ID of the note to fetch.
-  /// Returns the note content as a string.
+  /// Returns the associated detail string.
+  ///
+  /// Throws a [StateError] if the content is not found.
   @override
   Future<String> fetchDetail(SyncMetadata metadata) async {
     return preferences.getString('$prefix.${metadata.id}')!;
   }
 
-  /// Saves the given metadata and note content to SharedPreferences.
+  /// Saves metadata and its associated detail content to SharedPreferences.
   ///
-  /// [metadata] - The metadata object to save.
-  /// [detail] - The note content to save.
-  /// If the metadata already exists, it updates the note content and metadata.
+  /// - [metadata]: The metadata object to store.
+  /// - [detail]: The string content associated with the metadata.
+  ///
+  /// If the metadata already exists, it is updated; otherwise, it is added.
+  /// The metadata list is maintained under the key `'<prefix>.metadataList'`.
   @override
   Future<void> save(M metadata, String detail) async {
     final metadataList = await fetchMetadataList();
