@@ -9,16 +9,23 @@ class MockSharedPreferences extends Mock implements SharedPreferences {}
 
 void main() {
   late SharedPreferences preferences;
-  late CloudSyncSharedPreferencesAdapter adapter;
+  late CloudSyncSharedPreferencesAdapter<SerializableSyncMetadata> adapter;
   const prefix = 'CloudSyncSharedPreferencesAdapter';
 
-  final testMetadata = SyncMetadata(id: 'note-1', modifiedAt: DateTime.now());
+  final testMetadata = SerializableSyncMetadata(
+    id: 'note-1',
+    modifiedAt: DateTime.now(),
+  );
   final jsonMetadata = testMetadata.toJson();
   final detail = 'Note content for note-1';
 
   setUp(() {
     preferences = MockSharedPreferences();
-    adapter = CloudSyncSharedPreferencesAdapter(preferences);
+    adapter = CloudSyncSharedPreferencesAdapter(
+      preferences: preferences,
+      metadataToJson: (metadata) => metadata.toJson(),
+      metadataFromJson: (json) => SerializableSyncMetadata.fromJson(json),
+    );
   });
 
   group('CloudSyncSharedPreferencesAdapter', () {

@@ -1,29 +1,33 @@
 import 'package:cloud_sync/cloud_sync.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+const String _kPrefix = '\$CloudSyncSharedPreferencesAdapter';
+
 /// A local implementation of the [SyncAdapter] interface using SharedPreferences for storage.
 /// This adapter is responsible for syncing metadata and notes.
-class CloudSyncSharedPreferencesAdapter
-    implements SyncAdapter<SyncMetadata, String> {
+class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
+    extends SerializableSyncAdapter<M, String> {
   /// Creates a [CloudSyncSharedPreferencesAdapter] with the given SharedPreferences instance.
-  const CloudSyncSharedPreferencesAdapter(this.preferences);
+  const CloudSyncSharedPreferencesAdapter({
+    required this.preferences,
+    required super.metadataToJson,
+    required super.metadataFromJson,
+    this.prefix = _kPrefix,
+  });
+
+  /// A prefix used to namespace keys in SharedPreferences.
+  final String prefix;
 
   /// The SharedPreferences instance used to store metadata and notes.
   final SharedPreferences preferences;
-
-  /// A prefix used to namespace keys in SharedPreferences.
-  final String prefix = 'CloudSyncSharedPreferencesAdapter';
 
   /// Fetches the list of metadata from SharedPreferences.
   ///
   /// Returns a list of `SyncMetadata` objects. If no metadata is found, returns an empty list.
   @override
-  Future<List<SyncMetadata>> fetchMetadataList() async {
+  Future<List<M>> fetchMetadataList() async {
     final listString = preferences.getStringList('$prefix.metadataList');
-    final list =
-        listString
-            ?.map((element) => SyncMetadataDeserialization.fromJson(element))
-            .toList();
+    final list = listString?.map(metadataFromJson).toList();
 
     return list ?? [];
   }
@@ -45,7 +49,7 @@ class CloudSyncSharedPreferencesAdapter
   /// [detail] - The note content to save.
   /// If the metadata already exists, it updates the note content and metadata.
   @override
-  Future<void> save(SyncMetadata metadata, String detail) async {
+  Future<void> save(M metadata, String detail) async {
     final metadataList = await fetchMetadataList();
 
     await preferences.setString('$prefix.${metadata.id}', detail);
@@ -53,7 +57,7 @@ class CloudSyncSharedPreferencesAdapter
     metadataList.removeWhere((e) => e.id == metadata.id);
     metadataList.add(metadata);
 
-    final metadataListString = metadataList.map((e) => e.toJson()).toList();
+    final metadataListString = metadataList.map(metadataToJson).toList();
     await preferences.setStringList('$prefix.metadataList', metadataListString);
   }
 }
