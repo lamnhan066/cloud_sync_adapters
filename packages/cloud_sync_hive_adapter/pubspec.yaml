@@ -1,6 +1,6 @@
 name: cloud_sync_hive_adapter
 description: A Flutter plugin for integrating Hive sync functionality.
-version: 0.0.1-rc.1
+version: 0.0.1-rc.2
 repository: https://github.com/lamnhan066/cloud_sync_adapters
 
 environment:
