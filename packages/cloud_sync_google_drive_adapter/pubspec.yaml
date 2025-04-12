@@ -9,7 +9,7 @@ environment:
 resolution: workspace
 
 dependencies:
-  cloud_sync: ^0.4.0-rc.1
+  cloud_sync: ^0.4.0-rc.2
   googleapis: ^14.0.0
   http: ^1.3.0
 

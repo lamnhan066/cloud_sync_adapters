@@ -9,7 +9,7 @@ environment:
 resolution: workspace
 
 dependencies:
-  cloud_sync: ^0.4.0-rc.1
+  cloud_sync: ^0.4.0-rc.2
   hive_ce: ^2.10.1
 
 dev_dependencies:
