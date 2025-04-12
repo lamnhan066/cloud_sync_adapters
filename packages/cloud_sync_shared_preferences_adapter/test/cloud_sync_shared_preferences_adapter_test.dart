@@ -25,6 +25,7 @@ void main() {
       preferences: preferences,
       metadataToJson: (metadata) => metadata.toJson(),
       metadataFromJson: (json) => SerializableSyncMetadata.fromJson(json),
+      prefix: prefix,
     );
   });
 
