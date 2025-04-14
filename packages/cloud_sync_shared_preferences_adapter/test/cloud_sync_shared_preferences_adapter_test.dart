@@ -26,6 +26,15 @@ void main() {
       metadataToJson: (metadata) => metadata.toJson(),
       metadataFromJson: (json) => SerializableSyncMetadata.fromJson(json),
       prefix: prefix,
+      getMetadataId: (SerializableSyncMetadata metadata) {
+        return metadata.id;
+      },
+      isCurrentMetadataBeforeOther: (
+        SerializableSyncMetadata current,
+        SerializableSyncMetadata other,
+      ) {
+        return current.modifiedAt.isBefore(other.modifiedAt);
+      },
     );
   });
 

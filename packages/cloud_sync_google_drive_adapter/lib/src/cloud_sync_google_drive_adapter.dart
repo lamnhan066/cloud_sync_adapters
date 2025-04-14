@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_sync/cloud_sync.dart';
@@ -12,7 +13,7 @@ const String _kDefaultFileName = '\$CloudSyncGoogleDriveAdapter';
 /// This adapter handles the storage and retrieval of both metadata and detailed
 /// content using the Google Drive API, specifically within the provided [spaces],
 /// typically the `appDataFolder`.
-class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
+class CloudSyncGoogleDriveAdapter<M>
     extends SerializableSyncAdapter<M, String> {
   final drive.DriveApi driveApi;
   final String spaces;
@@ -28,6 +29,8 @@ class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
     required this.driveApi,
     this.spaces = _kDefaultSpaces,
     this.fileName = _kDefaultFileName,
+    required super.getMetadataId,
+    required super.isCurrentMetadataBeforeOther,
     required super.metadataToJson,
     required super.metadataFromJson,
   });
@@ -43,6 +46,8 @@ class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
     required http.Client client,
     this.spaces = _kDefaultSpaces,
     this.fileName = _kDefaultFileName,
+    required super.getMetadataId,
+    required super.isCurrentMetadataBeforeOther,
     required super.metadataToJson,
     required super.metadataFromJson,
   }) : driveApi = drive.DriveApi(client);
@@ -92,10 +97,10 @@ class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
   ///
   /// Returns the file content as a UTF-8 decoded [String].
   @override
-  Future<String> fetchDetail(SyncMetadata metadata) async {
+  Future<String> fetchDetail(M metadata) async {
     final file =
         await driveApi.files.get(
-              metadata.id,
+              getMetadataId(metadata),
               downloadOptions: drive.DownloadOptions.fullMedia,
             )
             as drive.Media;
@@ -112,7 +117,7 @@ class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
   Future<void> save(M metadata, String detail) async {
     final metadataList = await fetchMetadataList();
 
-    if (metadataList.any((e) => e.id == metadata.id)) {
+    if (metadataList.any((e) => getMetadataId(e) == getMetadataId(metadata))) {
       await _updateFile(metadata, detail);
     } else {
       await _createFile(metadata, detail);
@@ -123,10 +128,9 @@ class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
   Future<void> _createFile(M metadata, String detail) async {
     final file =
         drive.File()
-          ..id = metadata.id
+          ..id = getMetadataId(metadata)
           ..name = fileName
           ..description = metadataToJson(metadata)
-          ..modifiedTime = metadata.modifiedAt
           ..mimeType = 'application/octet-stream'
           ..parents = [spaces];
 
@@ -138,14 +142,15 @@ class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
 
   /// Updates an existing file in Google Drive with new [metadata] and [detail].
   Future<void> _updateFile(M metadata, String detail) async {
-    final file =
-        drive.File()
-          ..modifiedTime = metadata.modifiedAt
-          ..description = metadataToJson(metadata);
+    final file = drive.File()..description = metadataToJson(metadata);
 
     final bytes = utf8.encode(detail);
     final media = drive.Media(Stream.fromIterable([bytes]), bytes.length);
 
-    await driveApi.files.update(file, metadata.id, uploadMedia: media);
+    await driveApi.files.update(
+      file,
+      getMetadataId(metadata),
+      uploadMedia: media,
+    );
   }
 }

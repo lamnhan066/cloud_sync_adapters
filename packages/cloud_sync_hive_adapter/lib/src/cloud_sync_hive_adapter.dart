@@ -16,6 +16,8 @@ class CloudSyncHiveAdapter<M extends SyncMetadata>
   CloudSyncHiveAdapter({
     required this.metadataBox,
     required this.detailBox,
+    required super.getMetadataId,
+    required super.isCurrentMetadataBeforeOther,
     required super.metadataToJson,
     required super.metadataFromJson,
   });

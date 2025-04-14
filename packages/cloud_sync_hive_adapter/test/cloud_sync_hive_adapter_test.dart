@@ -27,6 +27,15 @@ void main() {
       detailBox: detailBox,
       metadataToJson: (metadata) => metadata.toJson(),
       metadataFromJson: (json) => SerializableSyncMetadata.fromJson(json),
+      getMetadataId: (SerializableSyncMetadata metadata) {
+        return metadata.id;
+      },
+      isCurrentMetadataBeforeOther: (
+        SerializableSyncMetadata current,
+        SerializableSyncMetadata other,
+      ) {
+        return current.modifiedAt.isBefore(other.modifiedAt);
+      },
     );
   });
 

@@ -17,6 +17,8 @@ class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
   /// - [prefix]: (Optional) A prefix used to namespace keys to avoid collisions. Defaults to [_kPrefix].
   const CloudSyncSharedPreferencesAdapter({
     required this.preferences,
+    required super.getMetadataId,
+    required super.isCurrentMetadataBeforeOther,
     required super.metadataToJson,
     required super.metadataFromJson,
     this.prefix = _kPrefix,
