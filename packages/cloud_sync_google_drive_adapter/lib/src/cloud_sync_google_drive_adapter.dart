@@ -60,15 +60,6 @@ class CloudSyncGoogleDriveAdapter<M>
     required super.metadataFromJson,
   }) : driveApi = drive.DriveApi(client);
 
-  /// Generates one or more unique file IDs from Google Drive.
-  ///
-  /// - [count]: The number of IDs to generate (defaults to 1).
-  /// Returns a list of newly generated file IDs.
-  Future<List<String>> generateIds([int count = 1]) async {
-    final response = await driveApi.files.generateIds(count: count);
-    return response.ids ?? [];
-  }
-
   /// Fetches a list of all metadata entries stored in Google Drive.
   ///
   /// Searches for all files (non-folders) within the specified [spaces]
@@ -79,7 +70,7 @@ class CloudSyncGoogleDriveAdapter<M>
   Future<List<M>> fetchMetadataList() async {
     final results = <drive.File>[];
     String? nextPageToken;
-    const query = "mimeType != 'application/vnd.google-apps.folder'";
+    const query = "mimeType!='application/vnd.google-apps.folder'";
 
     do {
       final fileList = await driveApi.files.list(
@@ -145,15 +136,10 @@ class CloudSyncGoogleDriveAdapter<M>
   Future<void> _createFile(M metadata, String detail) async {
     final file =
         drive.File()
-          ..id = getMetadataId(metadata)
           ..name = fileName
-          ..description = metadataToJson(
-            metadata,
-          ) // Serialize metadata to JSON.
+          ..description = metadataToJson(metadata)
           ..mimeType = 'application/octet-stream'
-          ..parents = [
-            spaces,
-          ]; // Specify the parent folder (e.g., appDataFolder).
+          ..parents = [spaces];
 
     // Encode the detail content as bytes and create a media stream.
     final bytes = utf8.encode(detail);
