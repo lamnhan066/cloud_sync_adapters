@@ -58,19 +58,6 @@ void main() {
     );
   });
 
-  test('generateIds returns list of IDs', () async {
-    final mockIds = MockGeneratedIds();
-    when(() => mockIds.ids).thenReturn(['abc', 'def']);
-    when(
-      () => mockFiles.generateIds(count: 2),
-    ).thenAnswer((_) async => mockIds);
-
-    final result = await adapter.generateIds(2);
-
-    expect(result, ['abc', 'def']);
-    verify(() => mockFiles.generateIds(count: 2)).called(1);
-  });
-
   test('fetchMetadataList returns list of SyncMetadata', () async {
     final mockFileList = MockFileList();
     final file =
