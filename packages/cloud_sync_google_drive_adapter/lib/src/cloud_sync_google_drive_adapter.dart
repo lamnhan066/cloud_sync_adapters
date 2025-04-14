@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_sync/cloud_sync.dart';
-import 'package:googleapis/drive/v3.dart';
+import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 
 const String _kDefaultSpaces = 'appDataFolder';
@@ -19,7 +19,7 @@ const String _kDefaultFileName = '\$CloudSyncGoogleDriveAdapter';
 class CloudSyncGoogleDriveAdapter<M>
     extends SerializableSyncAdapter<M, String> {
   /// The authenticated Google Drive API client.
-  final DriveApi driveApi;
+  final drive.DriveApi driveApi;
 
   /// The Google Drive space to use (e.g., `appDataFolder`).
   final String spaces;
@@ -27,9 +27,9 @@ class CloudSyncGoogleDriveAdapter<M>
   /// The name of the file used to store data in Google Drive.
   final String fileName;
 
-  /// Creates a [CloudSyncGoogleDriveAdapter] instance using an existing [DriveApi] client.
+  /// Creates a [CloudSyncGoogleDriveAdapter] instance using an existing [drive.DriveApi] client.
   ///
-  /// - [driveApi]: An authenticated instance of [DriveApi].
+  /// - [driveApi]: An authenticated instance of [drive.DriveApi].
   /// - [spaces]: The Drive space to use (defaults to `'appDataFolder'`).
   /// - [fileName]: The name of the file used to store data (defaults to `'$CloudSyncGoogleDriveAdapter'`).
   /// - [metadataToJson] / [metadataFromJson]: Functions for serializing and deserializing metadata.
@@ -45,7 +45,7 @@ class CloudSyncGoogleDriveAdapter<M>
 
   /// Creates a [CloudSyncGoogleDriveAdapter] from an HTTP client.
   ///
-  /// This is a convenience constructor that creates the [DriveApi] instance internally.
+  /// This is a convenience constructor that creates the [drive.DriveApi] instance internally.
   ///
   /// - [client]: The authenticated HTTP client for Google APIs.
   /// - [spaces]: The Drive space to use (defaults to `'appDataFolder'`).
@@ -58,7 +58,7 @@ class CloudSyncGoogleDriveAdapter<M>
     required super.isCurrentMetadataBeforeOther,
     required super.metadataToJson,
     required super.metadataFromJson,
-  }) : driveApi = DriveApi(client);
+  }) : driveApi = drive.DriveApi(client);
 
   /// Fetches a list of all metadata entries stored in Google Drive.
   ///
