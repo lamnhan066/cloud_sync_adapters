@@ -68,26 +68,7 @@ class CloudSyncGoogleDriveAdapter<M>
   /// Returns a list of deserialized metadata objects.
   @override
   Future<List<M>> fetchMetadataList() async {
-    final results = <drive.File>[];
-    String? nextPageToken;
-    const query = "mimeType!='application/vnd.google-apps.folder'";
-
-    do {
-      final fileList = await driveApi.files.list(
-        spaces: spaces,
-        pageToken: nextPageToken,
-        $fields: '*',
-        q: query,
-      );
-
-      for (final file in fileList.files ?? <drive.File>[]) {
-        if (file.name == fileName) {
-          results.add(file);
-        }
-      }
-
-      nextPageToken = fileList.nextPageToken;
-    } while (nextPageToken != null);
+    final results = await _fetchFileList();
 
     // Convert the file descriptions (JSON strings) into metadata objects.
     return results.map((file) => metadataFromJson(file.description!)).toList();
@@ -154,6 +135,16 @@ class CloudSyncGoogleDriveAdapter<M>
   /// - [metadata]: The updated metadata object.
   /// - [detail]: The updated detailed content to store in the file.
   Future<void> _updateFile(M metadata, String detail) async {
+    final metadataList = await _fetchFileList();
+    String? fileId;
+    for (final file in metadataList) {
+      final fileMetadata = metadataFromJson(file.description!);
+      if (getMetadataId(metadata) == getMetadataId(fileMetadata)) {
+        fileId = file.id!;
+        break;
+      }
+    }
+
     final file = drive.File()..description = metadataToJson(metadata);
 
     // Encode the detail content as bytes and create a media stream.
@@ -161,10 +152,31 @@ class CloudSyncGoogleDriveAdapter<M>
     final media = drive.Media(Stream.fromIterable([bytes]), bytes.length);
 
     // Update the file in Google Drive.
-    await driveApi.files.update(
-      file,
-      getMetadataId(metadata),
-      uploadMedia: media,
-    );
+    await driveApi.files.update(file, fileId!, uploadMedia: media);
+  }
+
+  Future<List<drive.File>> _fetchFileList() async {
+    final results = <drive.File>[];
+    String? nextPageToken;
+    const query = "mimeType!='application/vnd.google-apps.folder'";
+
+    do {
+      final fileList = await driveApi.files.list(
+        spaces: spaces,
+        pageToken: nextPageToken,
+        $fields: '*',
+        q: query,
+      );
+
+      for (final file in fileList.files ?? <drive.File>[]) {
+        if (file.name == fileName) {
+          results.add(file);
+        }
+      }
+
+      nextPageToken = fileList.nextPageToken;
+    } while (nextPageToken != null);
+
+    return results;
   }
 }
