@@ -5,16 +5,20 @@ const String _kPrefix = '\$CloudSyncSharedPreferencesAdapter';
 
 /// A [SyncAdapter] implementation that uses [SharedPreferences] for local storage.
 ///
-/// This adapter handles the persistence of metadata and associated detail content (e.g., notes)
-/// using simple key-value storage via SharedPreferences.
+/// This adapter provides a mechanism to persist metadata and associated detail content
+/// (e.g., notes) using key-value storage via SharedPreferences. It ensures that metadata
+/// and their corresponding details are stored and retrieved efficiently.
 class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
     extends SerializableSyncAdapter<M, String> {
   /// Creates an instance of [CloudSyncSharedPreferencesAdapter].
   ///
-  /// - [preferences]: The SharedPreferences instance for storing metadata and detail content.
-  /// - [metadataToJson]: Function to serialize metadata to JSON.
-  /// - [metadataFromJson]: Function to deserialize metadata from JSON.
-  /// - [prefix]: (Optional) A prefix used to namespace keys to avoid collisions. Defaults to [_kPrefix].
+  /// - [preferences]: The SharedPreferences instance used for storing metadata and detail content.
+  /// - [getMetadataId]: Function to extract the unique ID from a metadata object.
+  /// - [isCurrentMetadataBeforeOther]: Function to compare two metadata objects for ordering.
+  /// - [metadataToJson]: Function to serialize metadata objects into JSON strings.
+  /// - [metadataFromJson]: Function to deserialize JSON strings into metadata objects.
+  /// - [prefix]: (Optional) A prefix used to namespace keys in SharedPreferences to avoid collisions.
+  ///   Defaults to [_kPrefix].
   const CloudSyncSharedPreferencesAdapter({
     required this.preferences,
     required super.getMetadataId,
@@ -24,7 +28,7 @@ class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
     this.prefix = _kPrefix,
   });
 
-  /// A string prefix to namespace all stored keys in SharedPreferences.
+  /// A string prefix used to namespace all keys stored in SharedPreferences.
   final String prefix;
 
   /// The [SharedPreferences] instance used for reading and writing data.
@@ -32,10 +36,10 @@ class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
 
   /// Retrieves the list of stored metadata from SharedPreferences.
   ///
-  /// The metadata is expected to be stored under the key `'<prefix>.metadataList'`
-  /// as a list of JSON strings.
+  /// The metadata is stored under the key `'<prefix>.metadataList'` as a list of JSON strings.
+  /// Each JSON string represents a serialized metadata object.
   ///
-  /// Returns a list of deserialized metadata objects. Returns an empty list if none are found.
+  /// Returns a list of deserialized metadata objects. If no metadata is found, an empty list is returned.
   @override
   Future<List<M>> fetchMetadataList() async {
     final listString = preferences.getStringList('$prefix.metadataList');
@@ -46,11 +50,11 @@ class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
 
   /// Fetches the detail content associated with the given [metadata] from SharedPreferences.
   ///
-  /// - [metadata]: The metadata object containing the ID used to locate the stored detail.
+  /// - [metadata]: The metadata object containing the unique ID used to locate the stored detail content.
   ///
   /// Returns the associated detail string.
   ///
-  /// Throws a [StateError] if the content is not found.
+  /// Throws a [StateError] if the detail content is not found in SharedPreferences.
   @override
   Future<String> fetchDetail(SyncMetadata metadata) async {
     return preferences.getString('$prefix.${metadata.id}')!;
@@ -58,20 +62,24 @@ class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
 
   /// Saves metadata and its associated detail content to SharedPreferences.
   ///
-  /// - [metadata]: The metadata object to store.
+  /// - [metadata]: The metadata object to be stored.
   /// - [detail]: The string content associated with the metadata.
   ///
-  /// If the metadata already exists, it is updated; otherwise, it is added.
-  /// The metadata list is maintained under the key `'<prefix>.metadataList'`.
+  /// If the metadata already exists, it is updated. Otherwise, it is added to the metadata list.
+  /// The metadata list is maintained under the key `'<prefix>.metadataList'` and is stored as
+  /// a list of JSON strings.
   @override
   Future<void> save(M metadata, String detail) async {
     final metadataList = await fetchMetadataList();
 
+    // Save the detail content associated with the metadata.
     await preferences.setString('$prefix.${metadata.id}', detail);
 
+    // Remove any existing metadata with the same ID and add the new metadata.
     metadataList.removeWhere((e) => e.id == metadata.id);
     metadataList.add(metadata);
 
+    // Serialize the updated metadata list and save it to SharedPreferences.
     final metadataListString = metadataList.map(metadataToJson).toList();
     await preferences.setStringList('$prefix.metadataList', metadataListString);
   }

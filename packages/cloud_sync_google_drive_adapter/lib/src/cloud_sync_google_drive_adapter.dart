@@ -10,13 +10,21 @@ const String _kDefaultFileName = '\$CloudSyncGoogleDriveAdapter';
 
 /// A [SyncAdapter] implementation that uses Google Drive for synchronization.
 ///
-/// This adapter handles the storage and retrieval of both metadata and detailed
-/// content using the Google Drive API, specifically within the provided [spaces],
-/// typically the `appDataFolder`.
+/// This adapter provides functionality to store and retrieve metadata and detailed
+/// content using the Google Drive API. It operates within the specified [spaces],
+/// typically the `appDataFolder`, and uses a specific file name for storage.
+///
+/// The adapter supports creating, updating, and fetching files, as well as generating
+/// unique file IDs using the Google Drive API.
 class CloudSyncGoogleDriveAdapter<M>
     extends SerializableSyncAdapter<M, String> {
+  /// The authenticated Google Drive API client.
   final drive.DriveApi driveApi;
+
+  /// The Google Drive space to use (e.g., `appDataFolder`).
   final String spaces;
+
+  /// The name of the file used to store data in Google Drive.
   final String fileName;
 
   /// Creates a [CloudSyncGoogleDriveAdapter] instance using an existing [DriveApi] client.
@@ -27,12 +35,12 @@ class CloudSyncGoogleDriveAdapter<M>
   /// - [metadataToJson] / [metadataFromJson]: Functions for serializing and deserializing metadata.
   const CloudSyncGoogleDriveAdapter({
     required this.driveApi,
-    this.spaces = _kDefaultSpaces,
-    this.fileName = _kDefaultFileName,
     required super.getMetadataId,
     required super.isCurrentMetadataBeforeOther,
     required super.metadataToJson,
     required super.metadataFromJson,
+    this.spaces = _kDefaultSpaces,
+    this.fileName = _kDefaultFileName,
   });
 
   /// Creates a [CloudSyncGoogleDriveAdapter] from an HTTP client.
@@ -54,7 +62,7 @@ class CloudSyncGoogleDriveAdapter<M>
 
   /// Generates one or more unique file IDs from Google Drive.
   ///
-  /// - [count]: Number of IDs to generate (defaults to 1).
+  /// - [count]: The number of IDs to generate (defaults to 1).
   /// Returns a list of newly generated file IDs.
   Future<List<String>> generateIds([int count = 1]) async {
     final response = await driveApi.files.generateIds(count: count);
@@ -90,11 +98,13 @@ class CloudSyncGoogleDriveAdapter<M>
       nextPageToken = fileList.nextPageToken;
     } while (nextPageToken != null);
 
+    // Convert the file descriptions (JSON strings) into metadata objects.
     return results.map((file) => metadataFromJson(file.description!)).toList();
   }
 
   /// Downloads the content of a file associated with the given [metadata].
   ///
+  /// - [metadata]: The metadata object representing the file to download.
   /// Returns the file content as a UTF-8 decoded [String].
   @override
   Future<String> fetchDetail(M metadata) async {
@@ -105,6 +115,7 @@ class CloudSyncGoogleDriveAdapter<M>
             )
             as drive.Media;
 
+    // Combine all byte chunks into a single list and decode as UTF-8.
     final byteChunks = await file.stream.toList();
     return utf8.decode(byteChunks.expand((e) => e).toList());
   }
@@ -113,6 +124,9 @@ class CloudSyncGoogleDriveAdapter<M>
   ///
   /// If a file with the same metadata ID already exists, it is updated.
   /// Otherwise, a new file is created.
+  ///
+  /// - [metadata]: The metadata object to save.
+  /// - [detail]: The detailed content to associate with the metadata.
   @override
   Future<void> save(M metadata, String detail) async {
     final metadataList = await fetchMetadataList();
@@ -125,28 +139,42 @@ class CloudSyncGoogleDriveAdapter<M>
   }
 
   /// Creates a new file in Google Drive with the given [metadata] and [detail].
+  ///
+  /// - [metadata]: The metadata object to associate with the new file.
+  /// - [detail]: The detailed content to store in the new file.
   Future<void> _createFile(M metadata, String detail) async {
     final file =
         drive.File()
           ..id = getMetadataId(metadata)
           ..name = fileName
-          ..description = metadataToJson(metadata)
+          ..description = metadataToJson(
+            metadata,
+          ) // Serialize metadata to JSON.
           ..mimeType = 'application/octet-stream'
-          ..parents = [spaces];
+          ..parents = [
+            spaces,
+          ]; // Specify the parent folder (e.g., appDataFolder).
 
+    // Encode the detail content as bytes and create a media stream.
     final bytes = utf8.encode(detail);
     final media = drive.Media(Stream.fromIterable([bytes]), bytes.length);
 
+    // Create the file in Google Drive.
     await driveApi.files.create(file, uploadMedia: media);
   }
 
   /// Updates an existing file in Google Drive with new [metadata] and [detail].
+  ///
+  /// - [metadata]: The updated metadata object.
+  /// - [detail]: The updated detailed content to store in the file.
   Future<void> _updateFile(M metadata, String detail) async {
     final file = drive.File()..description = metadataToJson(metadata);
 
+    // Encode the detail content as bytes and create a media stream.
     final bytes = utf8.encode(detail);
     final media = drive.Media(Stream.fromIterable([bytes]), bytes.length);
 
+    // Update the file in Google Drive.
     await driveApi.files.update(
       file,
       getMetadataId(metadata),
