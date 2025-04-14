@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_sync/cloud_sync.dart';
-import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:googleapis/drive/v3.dart';
 import 'package:http/http.dart' as http;
 
 const String _kDefaultSpaces = 'appDataFolder';
@@ -19,7 +19,7 @@ const String _kDefaultFileName = '\$CloudSyncGoogleDriveAdapter';
 class CloudSyncGoogleDriveAdapter<M>
     extends SerializableSyncAdapter<M, String> {
   /// The authenticated Google Drive API client.
-  final drive.DriveApi driveApi;
+  final DriveApi driveApi;
 
   /// The Google Drive space to use (e.g., `appDataFolder`).
   final String spaces;
@@ -29,7 +29,7 @@ class CloudSyncGoogleDriveAdapter<M>
 
   /// Creates a [CloudSyncGoogleDriveAdapter] instance using an existing [DriveApi] client.
   ///
-  /// - [driveApi]: An authenticated instance of [drive.DriveApi].
+  /// - [driveApi]: An authenticated instance of [DriveApi].
   /// - [spaces]: The Drive space to use (defaults to `'appDataFolder'`).
   /// - [fileName]: The name of the file used to store data (defaults to `'$CloudSyncGoogleDriveAdapter'`).
   /// - [metadataToJson] / [metadataFromJson]: Functions for serializing and deserializing metadata.
@@ -58,7 +58,7 @@ class CloudSyncGoogleDriveAdapter<M>
     required super.isCurrentMetadataBeforeOther,
     required super.metadataToJson,
     required super.metadataFromJson,
-  }) : driveApi = drive.DriveApi(client);
+  }) : driveApi = DriveApi(client);
 
   /// Fetches a list of all metadata entries stored in Google Drive.
   ///
