@@ -8,7 +8,7 @@ const String _kPrefix = '\$CloudSyncSharedPreferencesAdapter';
 /// This adapter provides a mechanism to persist metadata and associated detail content
 /// (e.g., notes) using key-value storage via SharedPreferences. It ensures that metadata
 /// and their corresponding details are stored and retrieved efficiently.
-class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
+class CloudSyncSharedPreferencesAdapter<M>
     extends SerializableSyncAdapter<M, String> {
   /// Creates an instance of [CloudSyncSharedPreferencesAdapter].
   ///
@@ -56,8 +56,8 @@ class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
   ///
   /// Throws a [StateError] if the detail content is not found in SharedPreferences.
   @override
-  Future<String> fetchDetail(SyncMetadata metadata) async {
-    return preferences.getString('$prefix.${metadata.id}')!;
+  Future<String> fetchDetail(M metadata) async {
+    return preferences.getString('$prefix.${getMetadataId(metadata)}')!;
   }
 
   /// Saves metadata and its associated detail content to SharedPreferences.
@@ -71,12 +71,13 @@ class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
   @override
   Future<void> save(M metadata, String detail) async {
     final metadataList = await fetchMetadataList();
+    final metadataId = getMetadataId(metadata);
 
     // Save the detail content associated with the metadata.
-    await preferences.setString('$prefix.${metadata.id}', detail);
+    await preferences.setString('$prefix.$metadataId', detail);
 
     // Remove any existing metadata with the same ID and add the new metadata.
-    metadataList.removeWhere((e) => e.id == metadata.id);
+    metadataList.removeWhere((e) => getMetadataId(e) == metadataId);
     metadataList.add(metadata);
 
     // Serialize the updated metadata list and save it to SharedPreferences.

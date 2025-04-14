@@ -6,8 +6,7 @@ import 'package:hive_ce/hive.dart';
 /// This adapter uses Hive as the local persistence layer to manage the synchronization
 /// of metadata and associated content (e.g., notes). It provides methods to fetch, save,
 /// and manage data in a structured and efficient manner.
-class CloudSyncHiveAdapter<M extends SyncMetadata>
-    extends SerializableSyncAdapter<M, String> {
+class CloudSyncHiveAdapter<M> extends SerializableSyncAdapter<M, String> {
   /// Creates an instance of [CloudSyncHiveAdapter].
   ///
   /// - [metadataBox]: The Hive box used to store serialized metadata as JSON strings.
@@ -57,8 +56,8 @@ class CloudSyncHiveAdapter<M extends SyncMetadata>
   /// Throws:
   /// - [StateError] if the corresponding detail content is not found.
   @override
-  Future<String> fetchDetail(SyncMetadata metadata) async {
-    return (await detailBox.get(metadata.id))!;
+  Future<String> fetchDetail(M metadata) async {
+    return (await detailBox.get(getMetadataId(metadata)))!;
   }
 
   /// Saves metadata and its associated detailed content to Hive.
@@ -75,7 +74,8 @@ class CloudSyncHiveAdapter<M extends SyncMetadata>
   /// - A [Future] that completes when both metadata and detail content are successfully saved.
   @override
   Future<void> save(M metadata, String detail) async {
-    await detailBox.put(metadata.id, detail);
-    await metadataBox.put(metadata.id, metadataToJson(metadata));
+    final id = getMetadataId(metadata);
+    await detailBox.put(id, detail);
+    await metadataBox.put(id, metadataToJson(metadata));
   }
 }
