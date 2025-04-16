@@ -12,8 +12,6 @@ class MockDriveApi extends Mock implements drive.DriveApi {}
 
 class MockFilesResource extends Mock implements drive.FilesResource {}
 
-class MockGeneratedIds extends Mock implements drive.GeneratedIds {}
-
 class MockFileList extends Mock implements drive.FileList {}
 
 class MockDriveFile extends Mock implements drive.File {}
@@ -32,6 +30,9 @@ void main() {
     modifiedAt: DateTime.now(),
   );
   final jsonDescription = testMetadata.toJson();
+
+  const testFileName = '_test_file_name';
+  const testSpaces = '_test_spaces';
 
   setUpAll(() {
     registerFallbackValue(FakeDriveFile());
@@ -55,119 +56,275 @@ void main() {
       ) {
         return current.modifiedAt.isBefore(other.modifiedAt);
       },
+      fileName: testFileName,
+      spaces: testSpaces,
     );
   });
 
-  test('fetchMetadataList returns list of SyncMetadata', () async {
-    final mockFileList = MockFileList();
-    final file =
-        drive.File()
-          ..id = testMetadata.id
-          ..name = adapter.fileName
-          ..description = jsonDescription
-          ..modifiedTime = testMetadata.modifiedAt;
+  group('fetchMetadataList', () {
+    test('returns empty list when no files match', () async {
+      final mockFileList = MockFileList();
+      final wrongNameFile =
+          drive.File()
+            ..id = 'wrong-name-file'
+            ..name = 'wrong-name'
+            ..description = jsonDescription;
 
-    when(() => mockFileList.files).thenReturn([file]);
-    when(() => mockFileList.nextPageToken).thenReturn(null);
-    when(
-      () => mockFiles.list(
-        spaces: any(named: 'spaces'),
-        pageToken: any(named: 'pageToken'),
-        $fields: any(named: '\$fields'),
-        q: any(named: 'q'),
-      ),
-    ).thenAnswer((_) async => mockFileList);
+      when(() => mockFileList.files).thenReturn([wrongNameFile]);
+      when(() => mockFileList.nextPageToken).thenReturn(null);
+      when(
+        () => mockFiles.list(
+          spaces: testSpaces,
+          pageToken: any(named: 'pageToken'),
+          $fields: any(named: '\$fields'),
+          q: any(named: 'q'),
+        ),
+      ).thenAnswer((_) async => mockFileList);
 
-    final metadataList = await adapter.fetchMetadataList();
+      final metadataList = await adapter.fetchMetadataList();
 
-    expect(metadataList.length, 1);
-    expect(metadataList.first.id, testMetadata.id);
+      expect(metadataList, isEmpty);
+    });
+
+    test('returns list of SyncMetadata from matching files', () async {
+      final mockFileList = MockFileList();
+      final file =
+          drive.File()
+            ..id = 'file-id-1'
+            ..name = testFileName
+            ..description = jsonDescription;
+
+      final anotherFile =
+          drive.File()
+            ..id = 'file-id-2'
+            ..name = testFileName
+            ..description = jsonDescription;
+
+      final wrongNameFile =
+          drive.File()
+            ..id = 'wrong-name-file'
+            ..name = 'wrong-name'
+            ..description = jsonDescription;
+
+      when(
+        () => mockFileList.files,
+      ).thenReturn([file, anotherFile, wrongNameFile]);
+      when(() => mockFileList.nextPageToken).thenReturn(null);
+      when(
+        () => mockFiles.list(
+          spaces: testSpaces,
+          pageToken: any(named: 'pageToken'),
+          $fields: any(named: '\$fields'),
+          q: any(named: 'q'),
+        ),
+      ).thenAnswer((_) async => mockFileList);
+
+      final metadataList = await adapter.fetchMetadataList();
+
+      expect(metadataList.length, 2);
+      expect(
+        metadataList.every((element) => element.id == testMetadata.id),
+        isTrue,
+      );
+    });
+
+    test('handles pagination correctly', () async {
+      final firstPageList = MockFileList();
+      final secondPageList = MockFileList();
+
+      final firstPageFile =
+          drive.File()
+            ..id = 'file-id-1'
+            ..name = testFileName
+            ..description = jsonDescription;
+
+      final secondPageFile =
+          drive.File()
+            ..id = 'file-id-2'
+            ..name = testFileName
+            ..description = jsonDescription;
+
+      when(() => firstPageList.files).thenReturn([firstPageFile]);
+      when(() => firstPageList.nextPageToken).thenReturn('next-page-token');
+
+      when(() => secondPageList.files).thenReturn([secondPageFile]);
+      when(() => secondPageList.nextPageToken).thenReturn(null);
+
+      when(
+        () => mockFiles.list(
+          spaces: testSpaces,
+          pageToken: null,
+          $fields: any(named: '\$fields'),
+          q: any(named: 'q'),
+        ),
+      ).thenAnswer((_) async => firstPageList);
+
+      when(
+        () => mockFiles.list(
+          spaces: testSpaces,
+          pageToken: 'next-page-token',
+          $fields: any(named: '\$fields'),
+          q: any(named: 'q'),
+        ),
+      ).thenAnswer((_) async => secondPageList);
+
+      final metadataList = await adapter.fetchMetadataList();
+
+      expect(metadataList.length, 2);
+    });
   });
 
-  test('fetchDetail returns list of bytes from Media stream', () async {
-    final mockMedia = MockMedia();
-    final fileBytes = [
-      Uint8List.fromList([1, 2]),
-      Uint8List.fromList([3]),
-    ];
+  group('fetchDetail', () {
+    test('returns content from file matching metadata id', () async {
+      final mockFileList = MockFileList();
+      final mockMedia = MockMedia();
+      final fileBytes = [Uint8List.fromList(utf8.encode('test content'))];
 
-    when(
-      () => mockMedia.stream,
-    ).thenAnswer((_) => Stream.fromIterable(fileBytes));
-    when(
-      () => mockFiles.get(
-        testMetadata.id,
-        downloadOptions: drive.DownloadOptions.fullMedia,
-      ),
-    ).thenAnswer((_) async => mockMedia);
+      final file =
+          drive.File()
+            ..id = 'file-id-1'
+            ..name = testFileName
+            ..description = jsonDescription;
 
-    final bytes = await adapter.fetchDetail(testMetadata);
+      when(() => mockFileList.files).thenReturn([file]);
+      when(() => mockFileList.nextPageToken).thenReturn(null);
+      when(
+        () => mockFiles.list(
+          spaces: testSpaces,
+          pageToken: any(named: 'pageToken'),
+          $fields: any(named: '\$fields'),
+          q: any(named: 'q'),
+        ),
+      ).thenAnswer((_) async => mockFileList);
 
-    final expected = fileBytes.expand((e) => e).toList();
-    final decodedBytes = utf8.decode(expected);
+      when(
+        () => mockMedia.stream,
+      ).thenAnswer((_) => Stream.fromIterable(fileBytes));
 
-    expect(bytes, decodedBytes);
+      when(
+        () => mockFiles.get(
+          'file-id-1',
+          downloadOptions: drive.DownloadOptions.fullMedia,
+        ),
+      ).thenAnswer((_) async => mockMedia);
+
+      final content = await adapter.fetchDetail(testMetadata);
+
+      expect(content, 'test content');
+    });
+
+    test('throws SyncError when file with metadata id not found', () async {
+      final mockFileList = MockFileList();
+      final differentMetadata = SerializableSyncMetadata(
+        id: 'different-id',
+        modifiedAt: DateTime.now(),
+      );
+
+      final file =
+          drive.File()
+            ..id = 'file-id-1'
+            ..name = testFileName
+            ..description = jsonDescription; // Contains 'test-id'
+
+      when(() => mockFileList.files).thenReturn([file]);
+      when(() => mockFileList.nextPageToken).thenReturn(null);
+      when(
+        () => mockFiles.list(
+          spaces: testSpaces,
+          pageToken: any(named: 'pageToken'),
+          $fields: any(named: '\$fields'),
+          q: any(named: 'q'),
+        ),
+      ).thenAnswer((_) async => mockFileList);
+
+      expect(
+        () => adapter.fetchDetail(differentMetadata),
+        throwsA(
+          isA<SyncError>().having(
+            (e) => e.error,
+            'message',
+            contains('different-id'),
+          ),
+        ),
+      );
+    });
   });
 
-  test('save creates file if metadata not found', () async {
-    final mockFileList = MockFileList();
-    when(() => mockFileList.files).thenReturn([]);
-    when(() => mockFileList.nextPageToken).thenReturn(null);
-    when(
-      () => mockFiles.list(
-        spaces: any(named: 'spaces'),
-        pageToken: any(named: 'pageToken'),
-        $fields: any(named: '\$fields'),
-        q: any(named: 'q'),
-      ),
-    ).thenAnswer((_) async => mockFileList);
+  group('save', () {
+    test('creates file if metadata not found', () async {
+      final mockFileList = MockFileList();
+      when(() => mockFileList.files).thenReturn([]);
+      when(() => mockFileList.nextPageToken).thenReturn(null);
+      when(
+        () => mockFiles.list(
+          spaces: testSpaces,
+          pageToken: any(named: 'pageToken'),
+          $fields: any(named: '\$fields'),
+          q: any(named: 'q'),
+        ),
+      ).thenAnswer((_) async => mockFileList);
 
-    when(
-      () => mockFiles.create(any(), uploadMedia: any(named: 'uploadMedia')),
-    ).thenAnswer((_) async => drive.File());
+      when(
+        () => mockFiles.create(any(), uploadMedia: any(named: 'uploadMedia')),
+      ).thenAnswer((_) async => drive.File());
 
-    await adapter.save(testMetadata, '1 2 3');
+      await adapter.save(testMetadata, 'test content');
 
-    verify(
-      () => mockFiles.create(any(), uploadMedia: any(named: 'uploadMedia')),
-    ).called(1);
-  });
+      verify(
+        () => mockFiles.create(
+          any(
+            that: predicate((drive.File file) {
+              expect(file.name, equals(testFileName));
+              expect(file.description, equals(jsonDescription));
+              expect(file.parents, equals([testSpaces]));
+              return true;
+            }),
+          ),
+          uploadMedia: any(named: 'uploadMedia'),
+        ),
+      ).called(1);
+    });
 
-  test('save updates file if metadata found', () async {
-    final mockFileList = MockFileList();
-    final driveFile =
-        drive.File()
-          ..id = testMetadata.id
-          ..name = adapter.fileName
-          ..description = jsonDescription;
+    test('updates file if metadata found', () async {
+      final mockFileList = MockFileList();
+      final driveFile =
+          drive.File()
+            ..id = 'file-id-1'
+            ..name = testFileName
+            ..description = jsonDescription;
 
-    when(() => mockFileList.files).thenReturn([driveFile]);
-    when(() => mockFileList.nextPageToken).thenReturn(null);
-    when(
-      () => mockFiles.list(
-        spaces: any(named: 'spaces'),
-        pageToken: any(named: 'pageToken'),
-        $fields: any(named: '\$fields'),
-        q: any(named: 'q'),
-      ),
-    ).thenAnswer((_) async => mockFileList);
+      when(() => mockFileList.files).thenReturn([driveFile]);
+      when(() => mockFileList.nextPageToken).thenReturn(null);
+      when(
+        () => mockFiles.list(
+          spaces: testSpaces,
+          pageToken: any(named: 'pageToken'),
+          $fields: any(named: '\$fields'),
+          q: any(named: 'q'),
+        ),
+      ).thenAnswer((_) async => mockFileList);
 
-    when(
-      () => mockFiles.update(
-        any(),
-        testMetadata.id,
-        uploadMedia: any(named: 'uploadMedia'),
-      ),
-    ).thenAnswer((_) async => drive.File());
+      when(
+        () => mockFiles.update(
+          any(),
+          'file-id-1',
+          uploadMedia: any(named: 'uploadMedia'),
+        ),
+      ).thenAnswer((_) async => drive.File());
 
-    await adapter.save(testMetadata, '4 5 6');
+      await adapter.save(testMetadata, 'updated content');
 
-    verify(
-      () => mockFiles.update(
-        any(),
-        testMetadata.id,
-        uploadMedia: any(named: 'uploadMedia'),
-      ),
-    ).called(1);
+      verify(
+        () => mockFiles.update(
+          any(
+            that: predicate(
+              (drive.File file) => file.description == jsonDescription,
+            ),
+          ),
+          'file-id-1',
+          uploadMedia: any(named: 'uploadMedia'),
+        ),
+      ).called(1);
+    });
   });
 }

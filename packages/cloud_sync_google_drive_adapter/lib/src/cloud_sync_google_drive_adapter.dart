@@ -80,9 +80,11 @@ class CloudSyncGoogleDriveAdapter<M>
   /// Returns the file content as a UTF-8 decoded [String].
   @override
   Future<String> fetchDetail(M metadata) async {
+    final foundFile = await _findFileByMetadataId(getMetadataId(metadata));
+
     final file =
         await driveApi.files.get(
-              getMetadataId(metadata),
+              foundFile.id!,
               downloadOptions: drive.DownloadOptions.fullMedia,
             )
             as drive.Media;
@@ -135,15 +137,7 @@ class CloudSyncGoogleDriveAdapter<M>
   /// - [metadata]: The updated metadata object.
   /// - [detail]: The updated detailed content to store in the file.
   Future<void> _updateFile(M metadata, String detail) async {
-    final metadataList = await _fetchFileList();
-    String? fileId;
-    for (final file in metadataList) {
-      final fileMetadata = metadataFromJson(file.description!);
-      if (getMetadataId(metadata) == getMetadataId(fileMetadata)) {
-        fileId = file.id!;
-        break;
-      }
-    }
+    final foundFile = await _findFileByMetadataId(getMetadataId(metadata));
 
     final file = drive.File()..description = metadataToJson(metadata);
 
@@ -152,7 +146,22 @@ class CloudSyncGoogleDriveAdapter<M>
     final media = drive.Media(Stream.fromIterable([bytes]), bytes.length);
 
     // Update the file in Google Drive.
-    await driveApi.files.update(file, fileId!, uploadMedia: media);
+    await driveApi.files.update(file, foundFile.id!, uploadMedia: media);
+  }
+
+  Future<drive.File> _findFileByMetadataId(String metadataId) async {
+    final fileList = await _fetchFileList();
+    for (final file in fileList) {
+      final fileMetadata = metadataFromJson(file.description!);
+      if (getMetadataId(fileMetadata) == metadataId) {
+        return file;
+      }
+    }
+
+    throw SyncError(
+      'File with metadata ID $metadataId not found.',
+      StackTrace.current,
+    );
   }
 
   Future<List<drive.File>> _fetchFileList() async {
