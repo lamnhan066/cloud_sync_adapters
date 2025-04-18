@@ -1,22 +1,23 @@
 # CloudSyncHiveAdapter
 
-A local storage implementation of the [`SyncAdapter`](https://pub.dev/documentation/cloud_sync/latest/cloud_sync/SyncAdapter-class.html) interface from the [`cloud_sync`](https://pub.dev/packages/cloud_sync) package, built on top of [Hive](https://pub.dev/packages/hive_ce).  
-This adapter allows your app to store and sync note metadata and content locally using the Hive database.
+A Hive-powered implementation of the [`SyncAdapter`](https://pub.dev/documentation/cloud_sync/latest/cloud_sync/SyncAdapter-class.html) from the [`cloud_sync`](https://pub.dev/packages/cloud_sync) package.
+
+This adapter enables fast, offline-first local persistence of metadata and content using [Hive](https://pub.dev/packages/hive_ce). Great for syncing notes, logs, or custom data structures locally with cloud fallback support.
 
 ---
 
 ## ✨ Features
 
-- 💾 Persists metadata (`SyncMetadata`) and detailed content (`String`) locally using Hive.
-- 🔄 Supports reading, writing, and syncing note data.
-- 🧱 Ideal for offline-first apps or local caching alongside cloud sync (e.g., Google Drive).
-- 🚀 Fast, lightweight, and key-value based local database.
+- 💾 Stores metadata (`SyncMetadata`) and detailed content (`String`) using Hive.
+- ⚡ Fast and efficient with Hive's key-value storage.
+- 🔄 Compatible with `cloud_sync` for hybrid local/cloud sync.
+- 📴 Fully offline-capable — ideal for mobile, embedded, or disconnected use cases.
 
 ---
 
 ## 📦 Installation
 
-Add these dependencies to your `pubspec.yaml`:
+Add dependencies to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
@@ -25,21 +26,22 @@ dependencies:
   cloud_sync_hive_adapter: ^latest
 ```
 
-> ⚠️ Note: Be sure to initialize Hive before usage and register any adapters needed for your metadata class.
+> ✅ Make sure you initialize Hive and register any needed adapters before use.
 
 ---
 
-## 🚀 Usage
+## 🚀 Usage Example
 
 ```dart
+import 'dart:convert';
 import 'package:hive_ce/hive.dart';
 import 'package:cloud_sync_hive_adapter/cloud_sync_hive_adapter.dart';
-import 'your_models/sync_metadata.dart'; // Your custom SyncMetadata
+import 'your_models/my_metadata.dart'; // Define your SyncMetadata model
 
 void main() async {
-  await Hive.initFlutter();
-  
-  // Optionally register Hive adapters if needed
+  await Hive.initFlutter(); // or Hive.init('path')
+
+  // Optionally register your custom metadata adapter, if needed
   // Hive.registerAdapter(MyMetadataAdapter());
 
   final metadataBox = await Hive.openBox<String>('metadataBox');
@@ -50,44 +52,61 @@ void main() async {
     detailBox: detailBox,
     metadataToJson: (meta) => jsonEncode(meta.toJson()),
     metadataFromJson: (json) => MyMetadata.fromJson(jsonDecode(json)),
+    getMetadataId: (meta) => meta.id,
+    isCurrentMetadataBeforeOther: (a, b) => a.updatedAt.isBefore(b.updatedAt),
   );
 
-  // Use the adapter with a CloudSync instance
+  // Use with CloudSync:
+  // final cloudSync = CloudSync(adapter: adapter);
 }
 ```
 
 ---
 
-## 📁 Class Overview
+## 🧱 Class Overview
 
 ```dart
 class CloudSyncHiveAdapter<M extends SyncMetadata>
   extends SerializableSyncAdapter<M, String>
 ```
 
-### Parameters
+### 🔧 Constructor Parameters
 
-- `metadataBox`: A `Box<String>` used to store serialized metadata.
-- `detailBox`: A `LazyBox<String>` for storing note content.
-- `metadataToJson` / `metadataFromJson`: Serialization logic for your metadata type.
+| Parameter                     | Description                                                                 |
+|------------------------------|-----------------------------------------------------------------------------|
+| `metadataBox`                | `Box<String>` for serialized metadata (`JSON`).                             |
+| `detailBox`                  | `LazyBox<String>` for detailed string content.                              |
+| `metadataToJson`             | Converts metadata to JSON `String`.                                         |
+| `metadataFromJson`           | Parses JSON `String` into metadata.                                         |
+| `getMetadataId`              | Returns the unique ID for a metadata object.                                |
+| `isCurrentMetadataBeforeOther` | Compares metadata objects for version ordering (e.g., by `updatedAt`).       |
 
 ---
 
 ## ✅ When to Use
 
-- 📱 You need local storage for notes, logs, or structured data.
-- 📴 Offline-first behavior is important.
-- 🔄 You want to combine local persistence with cloud sync (e.g., Google Drive).
+- 📲 Need fast, reliable local sync for mobile or desktop.
+- 📴 Want offline-first functionality for notes, logs, tasks, etc.
+- 🌩️ Plan to combine Hive storage with cloud sync (e.g., Google Drive or Firebase).
+- 🧪 Prototyping or testing sync logic locally.
+
+---
+
+## ⚠️ Notes
+
+- Store only `String` data in Hive boxes with this adapter.
+- For complex object storage, use Hive’s custom type adapters directly or extend the adapter.
+- Avoid storing large binary data — Hive is optimized for structured key-value data.
+
+---
+
+## 📚 Related Packages
+
+- [`cloud_sync`](https://pub.dev/packages/cloud_sync) – Sync core and abstraction layer.
+- [`hive_ce`](https://pub.dev/packages/hive_ce) – Lightweight, blazing-fast NoSQL database for Flutter/Dart.
 
 ---
 
 ## 📄 License
 
-MIT (or your project's license)
-
----
-
-## 📚 Related
-
-- [`cloud_sync`](https://pub.dev/packages/cloud_sync) – Core sync abstraction
-- [`hive_ce`](https://pub.dev/packages/hive_ce) – Lightweight key-value database
+MIT (or your project’s license).

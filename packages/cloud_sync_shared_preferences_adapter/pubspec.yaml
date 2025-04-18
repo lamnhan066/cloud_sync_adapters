@@ -1,6 +1,6 @@
 name: cloud_sync_shared_preferences_adapter
 description: A Flutter plugin for integrating Shared Preferences sync functionality.
-version: 0.0.1-rc.2
+version: 0.0.1-rc.3
 repository: https://github.com/lamnhan066/cloud_sync_adapters
 
 environment:
@@ -11,7 +11,7 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
-  cloud_sync: ^0.4.0-rc.2
+  cloud_sync: ^0.4.0-rc.3
   shared_preferences: ^2.5.3
 
 dev_dependencies:

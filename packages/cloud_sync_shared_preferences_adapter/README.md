@@ -1,27 +1,28 @@
 # CloudSyncSharedPreferencesAdapter
 
-A local implementation of the [`SyncAdapter`](https://pub.dev/documentation/cloud_sync/latest/cloud_sync/SyncAdapter-class.html) interface from the [`cloud_sync`](https://pub.dev/packages/cloud_sync) package, using [`SharedPreferences`](https://pub.dev/packages/shared_preferences) for simple key-value storage.
+A lightweight local implementation of the [`SyncAdapter`](https://pub.dev/documentation/cloud_sync/latest/cloud_sync/SyncAdapter-class.html) from the [`cloud_sync`](https://pub.dev/packages/cloud_sync) package, powered by [`SharedPreferences`](https://pub.dev/packages/shared_preferences).
 
-This adapter allows apps to persist note metadata and content directly on the device — perfect for quick sync flows, offline caching, or prototyping.
+Perfect for simple sync needs, offline caching, prototypes, or fallback storage — no database required.
 
 ---
 
 ## ✨ Features
 
-- 📝 Stores note metadata (`SyncMetadata`) and content (`String`) in `SharedPreferences`.
-- ⚡ Quick and lightweight — no setup or database needed.
-- 🧪 Great for prototyping, fallback storage, or minimal local sync solutions.
+- 📝 Persists metadata (`SyncMetadata`) and detail content (`String`) in `SharedPreferences`.
+- ⚡ Lightweight and fast — ideal for prototyping or minimal sync flows.
+- 📴 Supports offline storage with zero setup.
+- 🔄 Fully compatible with the `cloud_sync` framework.
 
 ---
 
 ## 📦 Installation
 
-Add the required dependencies to your `pubspec.yaml`:
+Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  shared_preferences: ^latest
   cloud_sync: ^latest
+  shared_preferences: ^latest
   cloud_sync_shared_preferences_adapter: ^latest
 ```
 
@@ -30,9 +31,10 @@ dependencies:
 ## 🚀 Usage
 
 ```dart
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_sync_shared_preferences_adapter/cloud_sync_shared_preferences_adapter.dart';
-import 'your_models/sync_metadata.dart'; // Your custom SyncMetadata
+import 'your_models/my_metadata.dart';
 
 void main() async {
   final prefs = await SharedPreferences.getInstance();
@@ -41,53 +43,60 @@ void main() async {
     preferences: prefs,
     metadataToJson: (meta) => jsonEncode(meta.toJson()),
     metadataFromJson: (json) => MyMetadata.fromJson(jsonDecode(json)),
+    getMetadataId: (meta) => meta.id,
+    isCurrentMetadataBeforeOther: (a, b) => a.updatedAt.isBefore(b.updatedAt),
   );
 
-  // Use the adapter with your CloudSync logic
+  // Use this adapter with CloudSync to persist your data locally.
 }
 ```
 
 ---
 
-## 📁 Class Overview
+## 🧠 Class Overview
 
 ```dart
 class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
   extends SerializableSyncAdapter<M, String>
 ```
 
-### Constructor parameters
+---
 
-- `preferences`: An instance of `SharedPreferences`.
-- `metadataToJson`: Function to serialize metadata to `String`.
-- `metadataFromJson`: Function to deserialize metadata from `String`.
-- `prefix`: Optional key prefix for namespacing (default: `"$CloudSyncSharedPreferencesAdapter"`).
+## 🛠️ Constructor Parameters
+
+| Parameter                      | Description                                                      | Required | Default                          |
+|-------------------------------|------------------------------------------------------------------|----------|----------------------------------|
+| `preferences`                 | Instance of `SharedPreferences`.                                 | ✅       | –                                |
+| `metadataToJson`              | Serializes metadata to a `String`.                              | ✅       | –                                |
+| `metadataFromJson`            | Deserializes a `String` into metadata.                          | ✅       | –                                |
+| `getMetadataId`               | Extracts the unique ID from a metadata object.                  | ✅       | –                                |
+| `isCurrentMetadataBeforeOther`| Compares two metadata objects for version ordering.             | ✅       | –                                |
+| `prefix`                      | Optional prefix for namespacing stored keys.                    | ❌       | `"$CloudSyncSharedPreferencesAdapter"` |
 
 ---
 
 ## ✅ When to Use
 
-- 🧪 Prototype sync flows or quick demos.
-- 🗂 Store small amounts of structured content locally.
-- 📴 Enable basic offline persistence.
-- 🔙 Fallback adapter alongside a cloud-based adapter (e.g., Google Drive).
+- ⚡ Quick local sync for small apps or offline features.
+- 🧪 Ideal for demos, prototypes, or testing sync logic.
+- 🔙 Acts as a fallback when a cloud adapter is unavailable.
 
 ---
 
 ## ⚠️ Limitations
 
-- **Not suitable for large or binary data** – use `Hive` or `File`-based adapters instead.
-- SharedPreferences may have storage limits depending on platform.
+- **Not suitable for large or binary data** — use file or database-based adapters instead.
+- SharedPreferences has platform-specific size limits (~1–2MB).
+
+---
+
+## 📚 Related Packages
+
+- [`cloud_sync`](https://pub.dev/packages/cloud_sync) – Core sync logic.
+- [`shared_preferences`](https://pub.dev/packages/shared_preferences) – Simple local key-value store.
 
 ---
 
 ## 📄 License
 
-MIT (or your project’s license).
-
----
-
-## 📚 Related
-
-- [`cloud_sync`](https://pub.dev/packages/cloud_sync) – The base sync framework.
-- [`shared_preferences`](https://pub.dev/packages/shared_preferences) – Simple local key-value storage.
+MIT (or match your project’s license).
