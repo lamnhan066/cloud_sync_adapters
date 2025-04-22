@@ -1,0 +1,19 @@
+name: cloud_sync_adapters
+description: A collection of adapters for [cloud_sync](https://pub.dev/packages/cloud_sync). It just exports all available adapters without any specified versions.
+version: 0.0.1
+repository: https://github.com/lamnhan066/cloud_sync_adapters
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  # Local
+  cloud_sync_shared_preferences_adapter:
+  cloud_sync_hive_adapter:
+
+  # Cloud
+  cloud_sync_google_drive_adapter:
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.24.0
