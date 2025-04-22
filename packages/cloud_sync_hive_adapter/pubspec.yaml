@@ -4,7 +4,7 @@ version: 0.0.1-rc.4
 repository: https://github.com/lamnhan066/cloud_sync_adapters
 
 environment:
-  sdk: ^3.0.0
+  sdk: ^3.6.0
 
 resolution: workspace
 
