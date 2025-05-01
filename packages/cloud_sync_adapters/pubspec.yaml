@@ -1,10 +1,10 @@
 name: cloud_sync_adapters
 description: A collection of adapters for [cloud_sync](https://pub.dev/packages/cloud_sync). It just exports all available adapters without any specified versions.
-version: 0.0.1
+version: 0.0.2
 repository: https://github.com/lamnhan066/cloud_sync_adapters
 
 environment:
-  sdk: ^3.0.0
+  sdk: ^3.6.0
 
 dependencies:
   # Local
