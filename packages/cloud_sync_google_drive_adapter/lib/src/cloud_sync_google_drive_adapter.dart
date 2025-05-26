@@ -82,12 +82,10 @@ class CloudSyncGoogleDriveAdapter<M>
   Future<String> fetchDetail(M metadata) async {
     final foundFile = await _findFileByMetadataId(getMetadataId(metadata));
 
-    final file =
-        await driveApi.files.get(
-              foundFile.id!,
-              downloadOptions: drive.DownloadOptions.fullMedia,
-            )
-            as drive.Media;
+    final file = await driveApi.files.get(
+      foundFile.id!,
+      downloadOptions: drive.DownloadOptions.fullMedia,
+    ) as drive.Media;
 
     // Combine all byte chunks into a single list and decode as UTF-8.
     final byteChunks = await file.stream.toList();
@@ -117,12 +115,11 @@ class CloudSyncGoogleDriveAdapter<M>
   /// - [metadata]: The metadata object to associate with the new file.
   /// - [detail]: The detailed content to store in the new file.
   Future<void> _createFile(M metadata, String detail) async {
-    final file =
-        drive.File()
-          ..name = fileName
-          ..description = metadataToJson(metadata)
-          ..mimeType = 'application/octet-stream'
-          ..parents = [spaces];
+    final file = drive.File()
+      ..name = fileName
+      ..description = metadataToJson(metadata)
+      ..mimeType = 'application/octet-stream'
+      ..parents = [spaces];
 
     // Encode the detail content as bytes and create a media stream.
     final bytes = utf8.encode(detail);
