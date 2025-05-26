@@ -70,11 +70,11 @@ class CloudSyncSharedPreferencesAdapter<M>
   /// a list of JSON strings.
   @override
   Future<void> save(M metadata, String detail) async {
-    final metadataList = await fetchMetadataList();
-    final metadataId = getMetadataId(metadata);
-
     // Save the detail content associated with the metadata.
+    final metadataId = getMetadataId(metadata);
     await preferences.setString('$prefix.$metadataId', detail);
+
+    final metadataList = await fetchMetadataList();
 
     // Remove any existing metadata with the same ID and add the new metadata.
     metadataList.removeWhere((e) => getMetadataId(e) == metadataId);
