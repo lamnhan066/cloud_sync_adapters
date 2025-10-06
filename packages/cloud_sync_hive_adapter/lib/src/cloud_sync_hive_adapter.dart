@@ -73,9 +73,11 @@ class CloudSyncHiveAdapter<M> extends SerializableSyncAdapter<M, String> {
   /// Returns:
   /// - A [Future] that completes when both metadata and detail content are successfully saved.
   @override
-  Future<void> save(M metadata, String detail) async {
+  Future<void> save(M metadata, String? detail) async {
     final id = getMetadataId(metadata);
-    await detailBox.put(id, detail);
+    if (detail != null) {
+      await detailBox.put(id, detail);
+    }
     await metadataBox.put(id, metadataToJson(metadata));
   }
 }

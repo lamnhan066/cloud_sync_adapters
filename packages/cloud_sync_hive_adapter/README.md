@@ -72,14 +72,14 @@ class CloudSyncHiveAdapter<M extends SyncMetadata>
 
 ### 🔧 Constructor Parameters
 
-| Parameter                     | Description                                                                 |
-|------------------------------|-----------------------------------------------------------------------------|
-| `metadataBox`                | `Box<String>` for serialized metadata (`JSON`).                             |
-| `detailBox`                  | `LazyBox<String>` for detailed string content.                              |
-| `metadataToJson`             | Converts metadata to JSON `String`.                                         |
-| `metadataFromJson`           | Parses JSON `String` into metadata.                                         |
-| `getMetadataId`              | Returns the unique ID for a metadata object.                                |
-| `isCurrentMetadataBeforeOther` | Compares metadata objects for version ordering (e.g., by `updatedAt`).       |
+| Parameter                      | Description                                                            |
+| ------------------------------ | ---------------------------------------------------------------------- |
+| `metadataBox`                  | `Box<String>` for serialized metadata (`JSON`).                        |
+| `detailBox`                    | `LazyBox<String>` for detailed string content.                         |
+| `metadataToJson`               | Converts metadata to JSON `String`.                                    |
+| `metadataFromJson`             | Parses JSON `String` into metadata.                                    |
+| `getMetadataId`                | Returns the unique ID for a metadata object.                           |
+| `isCurrentMetadataBeforeOther` | Compares metadata objects for version ordering (e.g., by `updatedAt`). |
 
 ---
 
@@ -89,6 +89,18 @@ class CloudSyncHiveAdapter<M extends SyncMetadata>
 - 📴 Want offline-first functionality for notes, logs, tasks, etc.
 - 🌩️ Plan to combine Hive storage with cloud sync (e.g., Google Drive or Firebase).
 - 🧪 Prototyping or testing sync logic locally.
+
+---
+
+## 🛠 Methods
+
+| Method                | Description                                     |
+| --------------------- | ----------------------------------------------- |
+| `fetchMetadataList()` | Lists all files matching the given file name.   |
+| `fetchDetail()`       | Downloads and decodes file content from Drive.  |
+| `save()`              | Creates or updates a file based on metadata ID. |
+
+If you want to remove a file by only modifying the `metadata`, you can use `save(metadata, null)`.
 
 ---
 

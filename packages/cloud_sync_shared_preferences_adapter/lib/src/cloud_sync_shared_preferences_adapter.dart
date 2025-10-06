@@ -69,10 +69,12 @@ class CloudSyncSharedPreferencesAdapter<M>
   /// The metadata list is maintained under the key `'<prefix>.metadataList'` and is stored as
   /// a list of JSON strings.
   @override
-  Future<void> save(M metadata, String detail) async {
+  Future<void> save(M metadata, String? detail) async {
     // Save the detail content associated with the metadata.
     final metadataId = getMetadataId(metadata);
-    await preferences.setString('$prefix.$metadataId', detail);
+    if (detail != null) {
+      await preferences.setString('$prefix.$metadataId', detail);
+    }
 
     final metadataList = await fetchMetadataList();
 

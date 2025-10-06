@@ -100,7 +100,7 @@ class CloudSyncGoogleDriveAdapter<M>
   /// - [metadata]: The metadata object to save.
   /// - [detail]: The detailed content to associate with the metadata.
   @override
-  Future<void> save(M metadata, String detail) async {
+  Future<void> save(M metadata, String? detail) async {
     final metadataList = await fetchMetadataList();
 
     if (metadataList.any((e) => getMetadataId(e) == getMetadataId(metadata))) {
@@ -114,7 +114,7 @@ class CloudSyncGoogleDriveAdapter<M>
   ///
   /// - [metadata]: The metadata object to associate with the new file.
   /// - [detail]: The detailed content to store in the new file.
-  Future<void> _createFile(M metadata, String detail) async {
+  Future<void> _createFile(M metadata, String? detail) async {
     final file = drive.File()
       ..name = fileName
       ..description = metadataToJson(metadata)
@@ -122,8 +122,11 @@ class CloudSyncGoogleDriveAdapter<M>
       ..parents = [spaces];
 
     // Encode the detail content as bytes and create a media stream.
-    final bytes = utf8.encode(detail);
-    final media = drive.Media(Stream.fromIterable([bytes]), bytes.length);
+    drive.Media? media;
+    if (detail != null) {
+      final bytes = utf8.encode(detail);
+      media = drive.Media(Stream.fromIterable([bytes]), bytes.length);
+    }
 
     // Create the file in Google Drive.
     await driveApi.files.create(file, uploadMedia: media);
@@ -133,14 +136,17 @@ class CloudSyncGoogleDriveAdapter<M>
   ///
   /// - [metadata]: The updated metadata object.
   /// - [detail]: The updated detailed content to store in the file.
-  Future<void> _updateFile(M metadata, String detail) async {
+  Future<void> _updateFile(M metadata, String? detail) async {
     final foundFile = await _findFileByMetadataId(getMetadataId(metadata));
 
     final file = drive.File()..description = metadataToJson(metadata);
 
     // Encode the detail content as bytes and create a media stream.
-    final bytes = utf8.encode(detail);
-    final media = drive.Media(Stream.fromIterable([bytes]), bytes.length);
+    drive.Media? media;
+    if (detail != null) {
+      final bytes = utf8.encode(detail);
+      media = drive.Media(Stream.fromIterable([bytes]), bytes.length);
+    }
 
     // Update the file in Google Drive.
     await driveApi.files.update(file, foundFile.id!, uploadMedia: media);

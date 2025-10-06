@@ -64,14 +64,14 @@ class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
 
 ## 🛠️ Constructor Parameters
 
-| Parameter                      | Description                                                      | Required | Default                          |
-|-------------------------------|------------------------------------------------------------------|----------|----------------------------------|
-| `preferences`                 | Instance of `SharedPreferences`.                                 | ✅       | –                                |
-| `metadataToJson`              | Serializes metadata to a `String`.                              | ✅       | –                                |
-| `metadataFromJson`            | Deserializes a `String` into metadata.                          | ✅       | –                                |
-| `getMetadataId`               | Extracts the unique ID from a metadata object.                  | ✅       | –                                |
-| `isCurrentMetadataBeforeOther`| Compares two metadata objects for version ordering.             | ✅       | –                                |
-| `prefix`                      | Optional prefix for namespacing stored keys.                    | ❌       | `"$CloudSyncSharedPreferencesAdapter"` |
+| Parameter                      | Description                                         | Required | Default                                |
+| ------------------------------ | --------------------------------------------------- | -------- | -------------------------------------- |
+| `preferences`                  | Instance of `SharedPreferences`.                    | ✅        | –                                      |
+| `metadataToJson`               | Serializes metadata to a `String`.                  | ✅        | –                                      |
+| `metadataFromJson`             | Deserializes a `String` into metadata.              | ✅        | –                                      |
+| `getMetadataId`                | Extracts the unique ID from a metadata object.      | ✅        | –                                      |
+| `isCurrentMetadataBeforeOther` | Compares two metadata objects for version ordering. | ✅        | –                                      |
+| `prefix`                       | Optional prefix for namespacing stored keys.        | ❌        | `"$CloudSyncSharedPreferencesAdapter"` |
 
 ---
 
@@ -80,6 +80,18 @@ class CloudSyncSharedPreferencesAdapter<M extends SyncMetadata>
 - ⚡ Quick local sync for small apps or offline features.
 - 🧪 Ideal for demos, prototypes, or testing sync logic.
 - 🔙 Acts as a fallback when a cloud adapter is unavailable.
+
+---
+
+## 🛠 Methods
+
+| Method                | Description                                     |
+| --------------------- | ----------------------------------------------- |
+| `fetchMetadataList()` | Lists all files matching the given file name.   |
+| `fetchDetail()`       | Downloads and decodes file content from Drive.  |
+| `save()`              | Creates or updates a file based on metadata ID. |
+
+If you want to remove a file by only modifying the `metadata`, you can use `save(metadata, null)`.
 
 ---
 

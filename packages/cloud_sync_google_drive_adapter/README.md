@@ -77,14 +77,14 @@ class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
 
 ### Key Parameters
 
-| Parameter                     | Description                                         | Default                |
-|------------------------------|-----------------------------------------------------|------------------------|
-| `driveApi` / `client`        | Authenticated API or client                         | *(required)*           |
-| `metadataToJson` / `FromJson`| Serialization logic for metadata                    | *(required)*           |
-| `getMetadataId`              | Extracts unique ID from metadata                    | *(required)*           |
-| `isCurrentMetadataBeforeOther`| Comparison function for metadata versioning        | *(required)*           |
-| `spaces`                     | Google Drive space (`appDataFolder`, etc.)          | `'appDataFolder'`      |
-| `fileName`                   | Name of file used for storing data                  | `'$CloudSyncGoogleDriveAdapter'` |
+| Parameter                      | Description                                 | Default                          |
+| ------------------------------ | ------------------------------------------- | -------------------------------- |
+| `driveApi` / `client`          | Authenticated API or client                 | *(required)*                     |
+| `metadataToJson` / `FromJson`  | Serialization logic for metadata            | *(required)*                     |
+| `getMetadataId`                | Extracts unique ID from metadata            | *(required)*                     |
+| `isCurrentMetadataBeforeOther` | Comparison function for metadata versioning | *(required)*                     |
+| `spaces`                       | Google Drive space (`appDataFolder`, etc.)  | `'appDataFolder'`                |
+| `fileName`                     | Name of file used for storing data          | `'$CloudSyncGoogleDriveAdapter'` |
 
 ---
 
@@ -98,11 +98,13 @@ class CloudSyncGoogleDriveAdapter<M extends SyncMetadata>
 
 ## 🛠 Methods
 
-| Method               | Description                                          |
-|----------------------|------------------------------------------------------|
-| `fetchMetadataList()`| Lists all files matching the given file name.        |
-| `fetchDetail()`      | Downloads and decodes file content from Drive.       |
-| `save()`             | Creates or updates a file based on metadata ID.      |
+| Method                | Description                                     |
+| --------------------- | ----------------------------------------------- |
+| `fetchMetadataList()` | Lists all files matching the given file name.   |
+| `fetchDetail()`       | Downloads and decodes file content from Drive.  |
+| `save()`              | Creates or updates a file based on metadata ID. |
+
+If you want to remove a file by only modifying the `metadata`, you can use `save(metadata, null)`.
 
 ---
 
